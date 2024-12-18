@@ -51,7 +51,7 @@ const B2_CONFIGS = [
 ];
 
 // 定义集群访问目录
-const DIR = '';
+let DIR = '';
 
 // 定义集群里全部节点连接状态的密码验证，区分大小写（优先使用自定义密码，若为空则使用 GITHUB_PAT）
 const CHECK_PASSWORD = '' || GITHUB_PAT;
@@ -241,7 +241,7 @@ async function getGitHubUsername(pat) {
 // 检查 GitHub 仓库
 async function checkGitHubRepo(owner, repo, pat) {
   const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
-  const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${DIR}`;
+  const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${finalPath}`;
 
   const headers = {
     'Authorization': `token ${pat}`,
@@ -294,7 +294,7 @@ async function checkGitHubRepo(owner, repo, pat) {
 // 检查 GitLab 项目
 async function checkGitLabProject(projectId, pat) {
   const projectUrl = `https://gitlab.com/api/v4/projects/${projectId}`;
-  const filesUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree?ref=main&path=${DIR}&recursive=true&per_page=10000`;
+  const filesUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/tree?ref=main&path=${finalPath}&recursive=true&per_page=10000`;
 
   try {
     const [projectResponse, filesResponse] = await Promise.all([
@@ -437,7 +437,22 @@ export default {
     // 直接使用 GITLAB_CONFIGS 中的 name 作为 GitHub 仓库名
     const githubRepos = GITLAB_CONFIGS.map(config => config.name);
     const FILE = url.pathname.split('/').pop();
-
+    //确认最终路径
+	  let finalPath="";
+	  // 如果斜杠开头 去除斜杠
+	  if(FILEPATH.startsWith('/')){
+		    FILEPATH=FILEPATH.substring(1);
+	  }
+	  // dir参数 是否是filepath 的开头 如果是则不拼接dir 否则拼接dir到filepath
+	  // 检查 FILEPATH 是否以 `/${DIR}` 开头
+	
+	  if (FILEPATH.startsWith(DIR)) {
+		    // 如果 FILEPATH 已经包含 DIR，则直接使用 FILEPATH
+		    finalPath = FILEPATH;
+	  } else {
+		  // 如果 FILEPATH 是绝对路径，拼接时去掉可能的多余斜杠
+		  finalPath = `${DIR}${FILEPATH.startsWith("/") ? "" : "/"}${FILEPATH}`;
+	  }
     // 只在没有 from 参数时才检查和使用缓存
     let cacheResponse;
     if (!from) {
@@ -555,7 +570,7 @@ export default {
 
       if (validConfigs.r2) {
         const r2Requests = await Promise.all(R2_CONFIGS.map(async (r2Config) => {
-          const r2Path = `${r2Config.bucket}/${DIR}/${FILE}`;
+          const r2Path = `${r2Config.bucket}/${finalPath}`;
           const signedRequest = await getSignedUrl(r2Config, 'GET', r2Path);
           return {
             url: signedRequest.url,
@@ -569,7 +584,7 @@ export default {
 
       if (validConfigs.b2) {
         const b2Requests = await Promise.all(B2_CONFIGS.map(async (b2Config) => {
-          const b2Path = `${b2Config.bucket}/${DIR}/${FILE}`;
+          const b2Path = `${b2Config.bucket}/${finalPath}`;
           const signedRequest = await getSignedUrl(b2Config, 'GET', b2Path);
           return {
             url: signedRequest.url,
@@ -588,7 +603,7 @@ export default {
     if (from === 'where') {
       if (validConfigs.github) {
         const githubRequests = githubRepos.map(repo => ({
-          url: `https://api.github.com/repos/${GITHUB_USERNAME}/${repo}/contents/${DIR}/${FILE}`,
+          url: `https://api.github.com/repos/${GITHUB_USERNAME}/${repo}/contents/${finalPath}`,
           headers: {
             'Authorization': `token ${GITHUB_PAT}`,
             'Accept': 'application/vnd.github.v3+json',
@@ -610,7 +625,7 @@ export default {
 
       if (validConfigs.gitlab) {
         const gitlabRequests = GITLAB_CONFIGS.map(config => ({
-          url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(`${DIR}/${FILE}`)}?ref=main`,
+          url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(`${finalPath}`)}?ref=main`,
           headers: {
             'PRIVATE-TOKEN': config.token
           },
@@ -647,7 +662,7 @@ export default {
       // 获取文件内容模式
       if (from === 'github' && validConfigs.github) {
         requests = githubRepos.map(repo => ({
-          url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${DIR}/${FILE}`,
+          url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${finalPath}`,
           headers: {
             'Authorization': `token ${GITHUB_PAT}`,
             'User-Agent': 'Cloudflare Worker'
@@ -657,7 +672,7 @@ export default {
         }));
       } else if (from === 'gitlab' && validConfigs.gitlab) {
         requests = GITLAB_CONFIGS.map(config => ({
-          url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(`${DIR}/${FILE}`)}/raw?ref=main`,
+          url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(`${finalPath}`)}/raw?ref=main`,
           headers: {
             'PRIVATE-TOKEN': config.token
           },
@@ -670,7 +685,7 @@ export default {
       } else if (!from) {
         if (validConfigs.github) {
           const githubRequests = githubRepos.map(repo => ({
-            url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${DIR}/${FILE}`,
+            url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${finalPath}`,
             headers: {
               'Authorization': `token ${GITHUB_PAT}`,
               'User-Agent': 'Cloudflare Worker'
@@ -683,7 +698,7 @@ export default {
 
         if (validConfigs.gitlab) {
           const gitlabRequests = GITLAB_CONFIGS.map(config => ({
-            url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(`${DIR}/${FILE}`)}/raw?ref=main`,
+            url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(`${finalPath}`)}/raw?ref=main`,
             headers: {
               'PRIVATE-TOKEN': config.token
             },
