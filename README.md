@@ -1,6 +1,6 @@
 # 分布式存储集群
 
-## 更新日期 2024-12-18
+## 更新日期 2025-01-31
 
 ## 各方案的独立分仓库
 | 方案 | worker 文件 | 同步仓库模版 | 视频教程 |
@@ -63,3 +63,17 @@
 - **从 Cloudflare R2 获取** `https://<自定义域名>/<文件名>?from=r2`
 
 - **从 Backblaze B2 获取** `https://<自定义域名>/<文件名>?from=b2`
+
+## 从所有的平台删除指定文件
+
+- **支持多级子目录下的文件** ``https://<自定义域名>/delete?file=<文件名>`
+
+- **支持 GitHub / GitLab / R2，** 而 B2 由于技术问题，还未能通过 worker 来删除文件
+
+- **举例** 定义的节点目录为 files，而需要删除 `<节点>/files/a/b/test.jpg`
+
+```
+# 以下两个路径都可以
+https://<自定义域名>/delete?file=a/b/test.jpg
+https://<自定义域名>/delete?file=/a/b/test.jpg
+```
