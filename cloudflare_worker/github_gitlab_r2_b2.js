@@ -1006,8 +1006,8 @@ export default {
         const r2Requests = await Promise.all(R2_CONFIGS.map(async (r2Config) => {
           // 构建包含子目录的完整路径
           const storagePath = getStoragePath(`${subPath}/${FILE}`);
-          const r2Path = `${r2Config.bucket}/${DIR}/${storagePath}`;
-
+          // 检查 DIR 是否为空，如果为空则直接拼接 bucket 和 storagePath。
+          const r2Path = DIR ? `${r2Config.bucket}/${DIR}/${storagePath}` : `${r2Config.bucket}/${storagePath}`;
           const signedRequest = await getSignedUrl(r2Config, 'GET', r2Path);
           return {
             url: signedRequest.url,
