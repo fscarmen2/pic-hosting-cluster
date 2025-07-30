@@ -85,3 +85,15 @@ This project is generously sponsored by [VTEXS](https://zmto.com/).
 This project is generously sponsored by [Digitalvirt](https://digitalvirt.com/).
 
 ![image](https://digitalvirt.com/templates/BlueWhite/img/logo-dark.svg)
+
+
+<a href="https://dartnode.com?aff=CraftyMouse750" target="_blank">
+  <img src="https://status.dartnode.com/upload/logo1.png" style="width:20%;">
+</a><br>
+
+<a href="https://dartnode.com" title="Powered by DartNode - Free VPS for Open Source" target="_blank">
+  <img src="https://dartnode.com/branding/DN-Open-Source-sm.png" style="width:40%;">
+</a>
+
+I am honored that DARTNODE is offering a free server to sponsor my project.<br>
+DARTNODE's official Web Site : [https://dartnode.com](https://dartnode.com?aff=CraftyMouse750)
