@@ -80,18 +80,27 @@ https://<自定义域名>/<自定义密码>/del?file=/a/b/test.jpg
 
 ## Sponsors
 
-This project is generously sponsored by [VTEXS](https://zmto.com/).
+- This project is generously sponsored by [VTEXS](https://zmto.com/).
 
-This project is generously sponsored by [Digitalvirt](https://digitalvirt.com/).
+- 感谢 vps.town 对本项目的支持和赞助
 
-![image](https://digitalvirt.com/templates/BlueWhite/img/logo-dark.svg)
+<a href="https://vps.town" align="left">
+  <img src="https://vps.town/static/images/sponsor.png" alt="Sponsor" width="30%">
+</a>
 
+- 感谢 digitalvirt.com 对本项目的支持和赞助
 
-<a href="https://dartnode.com?aff=CraftyMouse750" target="_blank">
+<a href="https://digitalvirt.com" align="left">
+  <img src="https://digitalvirt.com/templates/BlueWhite/img/logo-dark.svg" alt="Sponsor" width="30%">
+</a>
+
+- 感谢 dartnode.com 对本项目的支持和赞助
+
+<a href="https://dartnode.com?aff=CraftyMouse750" target="_blank" align="left">
   <img src="https://status.dartnode.com/upload/logo1.png" style="width:20%;">
 </a><br>
 
-<a href="https://dartnode.com" title="Powered by DartNode - Free VPS for Open Source" target="_blank">
+<a href="https://dartnode.com" title="Powered by DartNode - Free VPS for Open Source" target="_blank" align="left">
   <img src="https://dartnode.com/branding/DN-Open-Source-sm.png" style="width:40%;">
 </a>
 
