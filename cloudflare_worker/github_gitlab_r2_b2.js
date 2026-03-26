@@ -51,10 +51,11 @@ const B2_CONFIGS = [
 ];
 
 // 定义集群访问目录
-const DIR = '';
+const DIR = /** @type {string} */ ('');
 
 // 定义集群里全部节点连接状态的密码验证，区分大小写（优先使用自定义密码，若为空则使用 GITHUB_PAT）
-const CHECK_PASSWORD = '' || GITHUB_PAT;
+const CUSTOM_PASSWORD = '';
+const CHECK_PASSWORD = CUSTOM_PASSWORD || GITHUB_PAT;
 
 // GitHub 备份策略
 const STRATEGY = 'size'  // 可选 [size (默认) | quantity | 指定节点]; size: 选择容量最少的仓库来存储文件; quantity: 选择文件最少的仓库来存储文件; 指定节点: 比如  pic1 或者 pic2
@@ -746,8 +747,27 @@ export default {
     // 检查是否有有效的配置，调用 `hasValidConfig()` 函数
     const validConfigs = hasValidConfig();
 
-    // 获取请求路径并解码（对 URL 编码进行解码）
-    const requestPath = decodeURIComponent(url.pathname);
+    // 获取请求路径：
+    // url.pathname 在 Cloudflare Worker 中已是 Unicode 字符串，直接使用即可。
+    // 使用 decodeURIComponent 兜底处理仍为百分号编码的情况，同时捕获异常防止恶意编码导致崩溃。
+    let requestPath;
+    try {
+      requestPath = decodeURIComponent(url.pathname);
+    } catch (e) {
+      // 解码失败时直接使用原始 pathname
+      requestPath = url.pathname;
+    }
+
+    // 对路径各段重新编码，用于拼接到 URL 中（支持中文/日文/韩文等非 ASCII 文件名）
+    // 过滤空段，避免 DIR 或 subPath 为空时产生多余斜杠（如 main//文件名）
+    function encodePathSegments(path) {
+      return path.split('/').filter(seg => seg !== '').map(seg => encodeURIComponent(seg)).join('/');
+    }
+
+    // 构建用于拼接 URL 的编码路径，过滤空值，避免双斜杠
+    function buildEncodedPath(...parts) {
+      return parts.filter(p => p && p !== '').map(p => encodePathSegments(p)).join('/');
+    }
 
     // 添加根路径项目介绍
     if (requestPath === '/') {
@@ -1056,7 +1076,8 @@ export default {
     if (from === 'where') {
       if (validConfigs.github) {
         const githubRequests = githubRepos.map(repo => ({
-          url: `https://api.github.com/repos/${GITHUB_USERNAME}/${repo}/contents/${getFilePath(DIR, `${subPath}/${FILE}`)}`,
+          // buildEncodedPath 过滤空段，避免双斜杠；encodePathSegments 处理中文/日文/韩文
+          url: `https://api.github.com/repos/${GITHUB_USERNAME}/${repo}/contents/${encodePathSegments(getFilePath(DIR, `${subPath}/${FILE}`))}`,
           headers: {
             'Authorization': `token ${GITHUB_PAT}`,
             'Accept': 'application/vnd.github.v3+json',
@@ -1078,7 +1099,7 @@ export default {
 
       if (validConfigs.gitlab) {
         const gitlabRequests = GITLAB_CONFIGS.map(config => ({
-          // GitLab where 查询 URL
+          // GitLab where 查询 URL（encodeURIComponent 对整个路径编码，GitLab API 要求）
           url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(getFilePath(DIR, `${subPath}/${FILE}`))}?ref=main`,
           headers: {
             'PRIVATE-TOKEN': config.token
@@ -1115,7 +1136,8 @@ export default {
       // 获取文件内容模式
       if (from === 'github' && validConfigs.github) {
         requests = githubRepos.map(repo => ({
-          url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${fullPath}/${FILE}`,
+          // buildEncodedPath 过滤空段，避免双斜杠，支持中文/日文/韩文文件名
+          url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${buildEncodedPath(fullPath, FILE)}`,
           headers: {
             'Authorization': `token ${GITHUB_PAT}`,
             'User-Agent': 'Cloudflare Worker'
@@ -1125,7 +1147,7 @@ export default {
         }));
       } else if (from === 'gitlab' && validConfigs.gitlab) {
         requests = GITLAB_CONFIGS.map(config => ({
-          // GitLab 文件获取 URL
+          // GitLab 文件获取 URL（encodeURIComponent 对整个路径编码）
           url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(getFilePath(DIR, `${subPath}/${FILE}`))}/raw?ref=main`,
           headers: {
             'PRIVATE-TOKEN': config.token
@@ -1139,7 +1161,8 @@ export default {
       } else if (!from) {
         if (validConfigs.github) {
           const githubRequests = githubRepos.map(repo => ({
-            url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${fullPath}/${FILE}`,
+            // buildEncodedPath 过滤空段，避免双斜杠，支持中文/日文/韩文文件名
+            url: `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${repo}/main/${buildEncodedPath(fullPath, FILE)}`,
             headers: {
               'Authorization': `token ${GITHUB_PAT}`,
               'User-Agent': 'Cloudflare Worker'
@@ -1152,7 +1175,7 @@ export default {
 
         if (validConfigs.gitlab) {
           const gitlabRequests = GITLAB_CONFIGS.map(config => ({
-            // GitLab URL 构建方式
+            // GitLab URL 构建方式（encodeURIComponent 对整个路径编码）
             url: `https://gitlab.com/api/v4/projects/${config.id}/repository/files/${encodeURIComponent(getFilePath(DIR, `${subPath}/${FILE}`))}/raw?ref=main`,
             headers: {
               'PRIVATE-TOKEN': config.token

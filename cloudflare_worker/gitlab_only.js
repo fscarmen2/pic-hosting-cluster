@@ -111,7 +111,8 @@ async function checkGitLabProject(projectId, pat) {
           // CONCURRENT_REQUESTS: 控制同时发起的并发请求数，防止对 GitLab API 施加过大压力
           const CONCURRENT_REQUESTS = 100; 
           const sizes = await asyncPool(CONCURRENT_REQUESTS, filesData, async (file) => {
-            const encodedPath = `/${encodeURIComponent(file.path)}`;
+            // 逐段编码路径，支持中文/日文/韩文文件名，同时保留多级目录的斜杠结构
+            const encodedPath = '/' + file.path.split('/').map(seg => encodeURIComponent(seg)).join('/');
             const size = await getFileSizeFromGitLab(projectId, encodedPath, pat);
             return size;
           });
@@ -204,7 +205,8 @@ export default {
       }
 
       // 构建文件路径
-      const filePath = pathParts.slice(1).join('/');
+      // 对路径各段逐段编码，支持中文/日文/韩文等非 ASCII 文件名，保留多级目录结构
+      const filePath = pathParts.slice(1).map(seg => encodeURIComponent(seg)).join('/');
       console.log('Accessing file:', filePath);
 
       // 检查文件是否存在

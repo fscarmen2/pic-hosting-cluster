@@ -154,8 +154,17 @@ export default {
         );
       }
 
-      // 原有的文件获取逻辑保持不变
-      const FILE = url.pathname.split('/').pop();
+      // 获取请求路径并解码，支持中文/日文/韩文等非 ASCII 文件名
+      let requestPath;
+      try {
+        requestPath = decodeURIComponent(url.pathname);
+      } catch (e) {
+        requestPath = url.pathname;
+      }
+      const FILE = requestPath.split('/').pop();
+      // 对路径各段重新编码，过滤空段避免双斜杠（如 DIR 为空时 main//文件名）
+      const encodePathSegments = (path) =>
+        path.split('/').filter(seg => seg !== '').map(seg => encodeURIComponent(seg)).join('/');
 
       // 缓存检查
       const cacheUrl = new URL(request.url);
@@ -167,10 +176,12 @@ export default {
         return cacheResponse;
       }
 
-      // 构建 GitHub raw 文件的 URL 列表
-      const urls = REPOS.map(repoNumber =>
-        `https://raw.githubusercontent.com/${CONFIG.GITHUB_USERNAME}/${CONFIG.GITHUB_REPO_PREFIX}${repoNumber}/main/${CONFIG.DIR}/${FILE}`
-      );
+      // 构建 GitHub raw 文件的 URL 列表，使用 encodePathSegments 支持中文/日文/韩文文件名，过滤空段避免双斜杠
+      const urls = REPOS.map(repoNumber => {
+        const parts = [CONFIG.DIR, FILE].filter(p => p && p !== '');
+        const encodedPath = parts.map(p => encodePathSegments(p)).join('/');
+        return `https://raw.githubusercontent.com/${CONFIG.GITHUB_USERNAME}/${CONFIG.GITHUB_REPO_PREFIX}${repoNumber}/main/${encodedPath}`;
+      });
 
       // 创建并发请求
       const requests = urls.map(githubUrl => {
